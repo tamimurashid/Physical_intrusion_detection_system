@@ -1,6 +1,6 @@
-#define BLYNK_TEMPLATE_ID "Your_Template_ID"
-#define BLYNK_TEMPLATE_NAME "Your_Project_Name"
-#define BLYNK_AUTH_TOKEN "Your_Auth_Token"
+#define BLYNK_TEMPLATE_ID "TMPL2GqdIuQgD"
+#define BLYNK_TEMPLATE_NAME "PhysicalIDS"
+#define BLYNK_AUTH_TOKEN "eDUr6N1j893Twp7BYnJ-9foNdWbRcG5O"
 
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
