@@ -9,3 +9,114 @@ in the development cycle.
 
 More information about PlatformIO Unit Testing:
 - https://docs.platformio.org/en/latest/advanced/unit-testing/index.html
+
+
+#define BLYNK_TEMPLATE_ID "TMPL2GqdIuQgD"
+#define BLYNK_TEMPLATE_NAME "PhysicalIDS"
+#define BLYNK_AUTH_TOKEN "eDUr6N1j893Twp7BYnJ-9foNdWbRcG5O"
+
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+#include <Servo.h>
+#include <ESP8266HTTPClient.h>
+#include <WiFiClient.h>
+
+
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "Reindeer";
+char pass[] = "200120022003";
+
+// PIN DEFINITIONS
+#define PIR_PIN 5
+#define BUZZER_PIN 4
+#define BLUE_LED 12
+#define GREEN_LED 13
+#define SERVO_PIN 2
+
+Servo myServo;
+BlynkTimer timer;
+
+bool motionDetected = false;
+int servoAngle = 90; // Initial servo position
+void checkMotion();
+void setup() {
+  Serial.begin(9600);
+  
+  pinMode(PIR_PIN, INPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(BLUE_LED, OUTPUT);
+  pinMode(GREEN_LED, OUTPUT);
+
+  digitalWrite(BUZZER_PIN, LOW);
+  digitalWrite(GREEN_LED, LOW);
+  digitalWrite(BLUE_LED, LOW);
+
+  myServo.attach(SERVO_PIN);
+  myServo.write(servoAngle);
+
+  Blynk.begin(auth, ssid, pass);
+
+  timer.setInterval(1000L, checkMotion); // Check motion every 1 sec
+}
+
+void sendChatbotAlert(String message) {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    WiFiClient client;
+
+    http.begin(client, "http://192.168.10.103:5000/chat"); // CHANGE THIS!
+    http.addHeader("Content-Type", "application/json");
+
+    String payload = "{\"message\": \"" + message + "\"}";
+    int httpResponseCode = http.POST(payload);
+
+    if (httpResponseCode > 0) {
+      Serial.println("Alert sent to chatbot!");
+      String response = http.getString();
+      Serial.println(response);
+    } else {
+      Serial.print("Error sending alert: ");
+      Serial.println(httpResponseCode);
+    }
+
+    http.end();
+  }
+}
+
+// Blink green LED and beep buzzer when motion is detected
+void checkMotion() {
+  int motion = digitalRead(PIR_PIN);
+  if (motion == HIGH) {
+    Serial.println("Motion detected!");
+    digitalWrite(GREEN_LED, HIGH);
+    digitalWrite(BUZZER_PIN, HIGH);
+    delay(200);
+    digitalWrite(BUZZER_PIN, LOW);
+    digitalWrite(GREEN_LED, LOW);
+
+    Blynk.virtualWrite(V0, "Motion Detected");
+    sendChatbotAlert("motion detected");
+
+  } else {
+    Blynk.virtualWrite(V0, "No Motion");
+  }
+}
+
+// Servo control from Blynk app button or slider on V1
+BLYNK_WRITE(V1) {
+  servoAngle = param.asInt();  // Read angle from app
+  myServo.write(servoAngle);
+  Serial.print("Servo moved to: ");
+  Serial.println(servoAngle);
+}
+
+void loop() {
+  Blynk.run();
+  timer.run();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    digitalWrite(BLUE_LED, HIGH); // Blue LED on when connected
+  } else {
+    digitalWrite(BLUE_LED, LOW);
+  }
+}
